@@ -1,23 +1,26 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class IcosphereGenerator : MonoBehaviour
 {
-    [Range(1, 5)]
+    [Range(1, 8)]
     public int resolution = 1;
     public float radius = 1f;
+    public float textureResolution = 1f;
 
     private Mesh mesh;
     private MeshCollider meshCollider;
     private int lastResolution;
     private float lastRadius;
+    private float lastTextureResolution;
 
     private void Start()
     {
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
-        meshCollider = gameObject.AddComponent<MeshCollider>();
+        meshCollider = GetComponent<MeshCollider>();
         lastResolution = resolution;
         lastRadius = radius;
         GenerateIcosphere();
@@ -25,17 +28,20 @@ public class IcosphereGenerator : MonoBehaviour
 
     private void Update()
     {
-        if (resolution != lastResolution || radius != lastRadius)
+        // Check if resolution, radius, or texture resolution has changed
+        if (resolution != lastResolution || !Mathf.Approximately(radius, lastRadius) 
+            || !Mathf.Approximately(textureResolution, lastTextureResolution))
         {
             GenerateIcosphere();
             lastResolution = resolution;
             lastRadius = radius;
+            lastTextureResolution = textureResolution; // Update last value
         }
     }
 
     private void GenerateIcosphere()
     {
-        IcosphereCreator creator = new IcosphereCreator(resolution, radius);
+        IcosphereCreator creator = new IcosphereCreator(resolution, radius, textureResolution);
         mesh.Clear();
         mesh.vertices = creator.Vertices.ToArray();
         mesh.triangles = creator.Triangles.ToArray();
@@ -52,23 +58,25 @@ public class IcosphereCreator
 
     public float Radius { get; private set; }
     public int Resolution { get; private set; }
+    public float TextureResolution { get; private set;}
 
     public List<Vector3> Vertices { get; private set; }
     public List<int> Triangles { get; private set; }
     public List<Vector2> UVs { get; private set; }
 
-    public IcosphereCreator(int resolution, float radius)
+    public IcosphereCreator(int resolution, float radius, float textureResolution)
     {
         Resolution = resolution;
         Radius = radius;
+        TextureResolution = textureResolution;
         Generate();
     }
 
     private void Generate()
     {
-        Vertices = new System.Collections.Generic.List<Vector3>();
-        Triangles = new System.Collections.Generic.List<int>();
-        UVs = new System.Collections.Generic.List<Vector2>();
+        Vertices = new List<Vector3>();
+        Triangles = new List<int>();
+        UVs = new List<Vector2>();
 
         // Add initial vertices
         Vertices.Add(new Vector3(-1f, PHI, 0f).normalized * Radius);
@@ -125,8 +133,8 @@ public class IcosphereCreator
 
     private void RefineTriangles()
     {
-        var newTriangles = new System.Collections.Generic.List<int>();
-        var midPointCache = new System.Collections.Generic.Dictionary<int, int>();
+        var newTriangles = new List<int>();
+        var midPointCache = new Dictionary<int, int>();
 
         for (int i = 0; i < Triangles.Count; i += 3)
         {
@@ -147,7 +155,7 @@ public class IcosphereCreator
         Triangles = newTriangles;
     }
 
-    private int GetMidPointIndex(System.Collections.Generic.Dictionary<int, int> cache, int index1, int index2)
+    private int GetMidPointIndex(Dictionary<int, int> cache, int index1, int index2)
     {
         int smallerIndex = Mathf.Min(index1, index2);
         int greaterIndex = Mathf.Max(index1, index2);
@@ -171,8 +179,8 @@ public class IcosphereCreator
         foreach (var vertex in Vertices)
         {
             Vector2 uv = new Vector2();
-            uv.x = Mathf.Atan2(vertex.x, vertex.z) / TAU + 0.5f;
-            uv.y = Mathf.Asin(vertex.y / Radius) / Mathf.PI + 0.5f;
+            uv.x = (Mathf.Atan2(vertex.x, vertex.z) / TAU + 0.5f) * TextureResolution;
+            uv.y = (Mathf.Asin(vertex.y / Radius) / Mathf.PI + 0.5f) * TextureResolution;
             UVs.Add(uv);
         }
     }

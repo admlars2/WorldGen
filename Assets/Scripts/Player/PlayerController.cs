@@ -1,60 +1,56 @@
+using System;
 using UnityEngine;
 
-public class FirstPersonController : MonoBehaviour
+public class PlayerController : Entity
 {
     public float groundMovementSpeed = 5.0f;
     public float airMovementSpeed = 7.0f; // Faster movement speed in the air
     public float mouseSensitivity = 100.0f;
     public float upDownRange = 60.0f;
-    public float verticalSpeed = 5.0f;
-    public float gravity = -9.81f;
     public float jumpForce = 5.0f; // Jump force
     public float doubleTapTime = 0.3f; // Time interval for double tapping
 
     private float verticalRotation = 0;
-    private Vector3 velocity;
     private bool isFlying = false;
     private float lastSpaceTime = -1f; // Time since last spacebar press
 
-    private CharacterController characterController;
-
     void Start()
     {
-        characterController = GetComponent<CharacterController>();
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    void Update()
+    protected override void Update()
     {
+        base.Update(); // Call the base class Update method
+
         HandleRotation();
         HandleMovement();
 
-        // Check for double-tap on space to toggle flying
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            if (Time.time - lastSpaceTime < doubleTapTime)
-            {
-                isFlying = !isFlying; // Toggle flying mode
-            }
-            else if (characterController.isGrounded && !isFlying)
-            {
-                // Apply jump force
-                velocity.y = jumpForce;
-            }
-            lastSpaceTime = Time.time;
+            HandleJumpAndFlying();
         }
-
-        if (isFlying)
-        {
-            HandleFlying();
-        }
-        else
-        {
-            ApplyGravity();
-        }
-
-        characterController.Move((velocity) * Time.deltaTime);
     }
+
+    private void HandleJumpAndFlying()
+    {
+        if (Time.time - lastSpaceTime < doubleTapTime)
+        {
+            isFlying = !isFlying; // Toggle flying mode
+            gravityEnabled = !isFlying; // Toggole gravity to opposite of isFlying
+        }
+        else if (!isFlying)
+        {
+            ApplyJump();
+        }
+        lastSpaceTime = Time.time;
+    }
+
+    void ApplyJump()
+    {
+        AddVelocity(new Vector3(0, jumpForce, 0));
+    }
+
 
     void HandleRotation()
     {
@@ -69,38 +65,28 @@ public class FirstPersonController : MonoBehaviour
     void HandleMovement()
     {
         float currentSpeed = isFlying ? airMovementSpeed : groundMovementSpeed;
-        float forwardSpeed = Input.GetAxis("Vertical") * currentSpeed;
-        float sideSpeed = Input.GetAxis("Horizontal") * currentSpeed;
-        velocity.x = sideSpeed;
-        velocity.z = forwardSpeed;
-        velocity = transform.rotation * velocity;
+        float forwardSpeed = Input.GetAxis("Vertical");
+        float sideSpeed = Input.GetAxis("Horizontal");
+
+        Vector3 forwardDir = new Vector3(0, 0, 1);
+        Vector3 rightDir = new Vector3(1, 0, 0);
+
+        Vector3 newVelocity = (forwardDir * forwardSpeed + rightDir * sideSpeed).normalized * currentSpeed;
+
+        AddVelocity(newVelocity);
+
+        if (isFlying) HandleFlying();
     }
 
     void HandleFlying()
     {
         if (Input.GetKey(KeyCode.LeftShift))
         {
-            velocity.y = -verticalSpeed;
+            AddVelocity(new Vector3(0, -airMovementSpeed, 0));
         }
         else if (Input.GetKey(KeyCode.Space))
         {
-            velocity.y = verticalSpeed;
-        }
-        else
-        {
-            velocity.y = 0; // Neutral vertical velocity when flying
-        }
-    }
-
-    void ApplyGravity()
-    {
-        if (characterController.isGrounded)
-        {
-            velocity.y = Mathf.Max(velocity.y, 0);
-        }
-        else
-        {
-            velocity.y += gravity * Time.deltaTime;
+            AddVelocity(new Vector3(0, airMovementSpeed, 0));
         }
     }
 }
