@@ -13,6 +13,8 @@ GameObject:
   - component: {fileID: 2537349415003142337}
   - component: {fileID: 7294529134060507316}
   - component: {fileID: 9187998761132450736}
+  - component: {fileID: -7239749658998571111}
+  - component: {fileID: -4267835810867759616}
   m_Layer: 0
   m_Name: Terrain
   m_TagString: Untagged
@@ -122,3 +124,29 @@ MonoBehaviour:
   resolution: 6
   radius: 1000
   textureResolution: 100
+--- !u!114 &-7239749658998571111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4095597934527393601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1155d260458de434a8f9fa2ef951dca8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  toggleKey: 109
+  meshRenderers: []
+--- !u!114 &-4267835810867759616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4095597934527393601}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6af91cad6cf423c4a82255d19b0ee953, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

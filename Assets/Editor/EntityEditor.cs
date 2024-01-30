@@ -15,6 +15,7 @@ public class EntityEditor : Editor
         //EditorGUILayout.LabelField("Grounded", entity.characterController.isGrounded.ToString());
 
         // Display the velocity
+        EditorGUILayout.LabelField("Gravity Enabled", entity.gravityEnabled.ToString());
         EditorGUILayout.LabelField("Velocity", entity.velocity.ToString());
         EditorGUILayout.LabelField("Speed", entity.speed.ToString());
 

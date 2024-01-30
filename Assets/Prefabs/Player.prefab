@@ -104,8 +104,8 @@ GameObject:
   - component: {fileID: 7715980675550906911}
   - component: {fileID: 5112467562411716797}
   - component: {fileID: 8775067254868774264}
-  - component: {fileID: 5881706511739961977}
-  - component: {fileID: -7965992760827239646}
+  - component: {fileID: 2908768337055788602}
+  - component: {fileID: 7253072218471772404}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -200,27 +200,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &5881706511739961977
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4214699407816502595}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 11aad02d1ae31d146928882eb5094841, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gravity: -9.81
-  velocityDampening: 0.8
-  groundMovementSpeed: 5
-  airMovementSpeed: 7
-  mouseSensitivity: 100
-  upDownRange: 60
-  jumpForce: 5
-  doubleTapTime: 0.3
---- !u!143 &-7965992760827239646
+--- !u!143 &2908768337055788602
 CharacterController:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -246,3 +226,22 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7253072218471772404
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4214699407816502595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11aad02d1ae31d146928882eb5094841, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gravity: -9.81
+  characterController: {fileID: 2908768337055788602}
+  velocityDampening: 0.997
+  groundMovementSpeed: 5
+  airMovementSpeed: 7
+  mouseSensitivity: 100
+  jumpForce: 5

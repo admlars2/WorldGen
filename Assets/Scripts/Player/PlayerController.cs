@@ -3,16 +3,19 @@ using UnityEngine;
 
 public class PlayerController : Entity
 {
-    public float groundMovementSpeed = 5.0f;
     public float airMovementSpeed = 7.0f; // Faster movement speed in the air
     public float mouseSensitivity = 100.0f;
-    public float upDownRange = 60.0f;
-    public float jumpForce = 5.0f; // Jump force
-    public float doubleTapTime = 0.3f; // Time interval for double tapping
+    public float jumpForce = 7.0f; // Jump force
 
+    private float upDownRange = 60.0f;
     private float verticalRotation = 0;
-    private bool isFlying = false;
+    public bool isFlying = false;
     private float lastSpaceTime = -1f; // Time since last spacebar press
+    private float doubleTapTime = 0.3f; // Time interval for double tapping
+
+    private float forwardInput = 0f;
+    private float sideInput = 0f;
+    private bool jumpPressed = false;
 
     void Start()
     {
@@ -21,14 +24,26 @@ public class PlayerController : Entity
 
     protected override void Update()
     {
-        base.Update(); // Call the base class Update method
+        base.Update();
 
         HandleRotation();
+
+        // Capture input in Update
+        forwardInput = Input.GetAxis("Vertical");
+        sideInput = Input.GetAxis("Horizontal");
+        jumpPressed = jumpPressed || Input.GetKeyDown(KeyCode.Space); // Capture jump key press
+    }
+
+    protected override void FixedUpdate()
+    {
+        base.FixedUpdate();
+
         HandleMovement();
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (jumpPressed)
         {
             HandleJumpAndFlying();
+            jumpPressed = false; // Reset jump input
         }
     }
 
@@ -37,9 +52,9 @@ public class PlayerController : Entity
         if (Time.time - lastSpaceTime < doubleTapTime)
         {
             isFlying = !isFlying; // Toggle flying mode
-            gravityEnabled = !isFlying; // Toggole gravity to opposite of isFlying
+            gravityEnabled = !isFlying; // Toggle gravity to opposite of isFlying
         }
-        else if (!isFlying)
+        else if (!isFlying && isGrounded())
         {
             ApplyJump();
         }
@@ -48,7 +63,7 @@ public class PlayerController : Entity
 
     void ApplyJump()
     {
-        AddVelocity(new Vector3(0, jumpForce, 0));
+        setVelocityY(jumpForce);
     }
 
 
@@ -64,16 +79,12 @@ public class PlayerController : Entity
 
     void HandleMovement()
     {
+        // Use captured input
         float currentSpeed = isFlying ? airMovementSpeed : groundMovementSpeed;
-        float forwardSpeed = Input.GetAxis("Vertical");
-        float sideSpeed = Input.GetAxis("Horizontal");
 
-        Vector3 forwardDir = new Vector3(0, 0, 1);
-        Vector3 rightDir = new Vector3(1, 0, 0);
+        Vector3 newVelocity = (forwardDir * forwardInput + rightDir * sideInput).normalized * currentSpeed;
 
-        Vector3 newVelocity = (forwardDir * forwardSpeed + rightDir * sideSpeed).normalized * currentSpeed;
-
-        AddVelocity(newVelocity);
+        setVelocityXZ(newVelocity.x, newVelocity.z);
 
         if (isFlying) HandleFlying();
     }
@@ -82,11 +93,15 @@ public class PlayerController : Entity
     {
         if (Input.GetKey(KeyCode.LeftShift))
         {
-            AddVelocity(new Vector3(0, -airMovementSpeed, 0));
+            setVelocityY(-airMovementSpeed);
         }
         else if (Input.GetKey(KeyCode.Space))
         {
-            AddVelocity(new Vector3(0, airMovementSpeed, 0));
+            setVelocityY(airMovementSpeed);
+        }
+        else
+        {
+            setVelocityY(0);
         }
     }
 }
