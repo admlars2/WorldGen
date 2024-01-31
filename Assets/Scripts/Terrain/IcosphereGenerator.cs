@@ -41,7 +41,7 @@ public class IcosphereGenerator : MonoBehaviour
 
     private void GenerateIcosphere()
     {
-        IcosphereCreator creator = new IcosphereCreator(resolution, radius, textureResolution);
+        UVIcoCreate creator = new UVIcoCreate(resolution, radius, textureResolution);
         mesh.Clear();
         mesh.vertices = creator.Vertices.ToArray();
         mesh.triangles = creator.Triangles.ToArray();
@@ -51,7 +51,7 @@ public class IcosphereGenerator : MonoBehaviour
     }
 }
 
-public class IcosphereCreator
+public class UVIcoCreate
 {
     private const float TAU = Mathf.PI * 2f;
     private float PHI = (1f + Mathf.Sqrt(5f)) / 2f;
@@ -64,7 +64,7 @@ public class IcosphereCreator
     public List<int> Triangles { get; private set; }
     public List<Vector2> UVs { get; private set; }
 
-    public IcosphereCreator(int resolution, float radius, float textureResolution)
+    public UVIcoCreate(int resolution, float radius, float textureResolution)
     {
         Resolution = resolution;
         Radius = radius;

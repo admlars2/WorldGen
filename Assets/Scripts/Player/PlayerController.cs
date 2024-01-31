@@ -5,7 +5,6 @@ public class PlayerController : Entity
 {
     public float airMovementSpeed = 7.0f; // Faster movement speed in the air
     public float mouseSensitivity = 100.0f;
-    public float jumpForce = 7.0f; // Jump force
 
     private float upDownRange = 60.0f;
     private float verticalRotation = 0;
@@ -84,7 +83,7 @@ public class PlayerController : Entity
 
         Vector3 newVelocity = (forwardDir * forwardInput + rightDir * sideInput).normalized * currentSpeed;
 
-        setVelocityXZ(newVelocity.x, newVelocity.z);
+        setTargetVelocityXZ(newVelocity.x, newVelocity.z);
 
         if (isFlying) HandleFlying();
     }

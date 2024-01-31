@@ -1,4 +1,6 @@
 using System;
+using Unity.VisualScripting;
+using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
 public abstract class GravityBody : MonoBehaviour
@@ -10,12 +12,14 @@ public abstract class GravityBody : MonoBehaviour
     [SerializeField] public Vector3 worldCoordinates { get; private set; }
 
     private Vector3 gravityDirection;
-    [SerializeField] protected float gravity = -9.81f;
+    [SerializeField] public float gravity { get; protected set;} = -9.81f; 
     [SerializeField] public bool gravityEnabled {get; protected set;} = true;
 
-    [SerializeField] public Vector3 velocity { get; private set; }
+    [SerializeField] public Vector3 velocity { get; protected set; }
+    [SerializeField] public Vector3 targetVelocity { get; private set; } = Vector3.zero;
     [SerializeField] private float airFriction = 0.003f;
-    [SerializeField] private float groundedFriction = 0.2f;
+    [SerializeField] private float groundFriction = 0.2f;
+    [SerializeField] private float smoothTime = 0.08f;
     [SerializeField] public float speed {get; private set;}
     private Vector3 lastWorldCoords = Vector3.zero;
 
@@ -39,14 +43,14 @@ public abstract class GravityBody : MonoBehaviour
         MoveEntity();
     }
 
-    protected void setVelocity(Vector3 newVelocity)
+    protected void setTargetVelocity(Vector3 newVelocity)
     {
-        velocity = newVelocity;
+        targetVelocity = newVelocity;
     }
 
-    protected void setVelocityXZ(float x, float z)
+    protected void setTargetVelocityXZ(float x, float z)
     {
-        velocity = new Vector3(x, velocity.y, z);
+        targetVelocity = new Vector3(x, velocity.y, z);
     }
 
     protected void setVelocityY(float y)
@@ -67,15 +71,20 @@ public abstract class GravityBody : MonoBehaviour
     private void CalculateVelocity()
     {
         bool grounded = isGrounded();
-        float friction = grounded ? groundedFriction : airFriction;
 
-        velocity *= 1-friction;
+        Vector3 velocityChange = targetVelocity-velocity;
+        velocity = Vector3.SmoothDamp(velocity, targetVelocity, ref velocityChange, smoothTime);
+
+        velocity *= 1-airFriction;
 
         if (gravityEnabled && !grounded)
         {
             velocity += new Vector3(0, gravity, 0) * Time.deltaTime; // v = v + aΔt
         }
-        
+        else if (grounded)
+        {
+            velocity = new Vector3(velocity.x, velocity.y*(1-groundFriction), velocity.z);
+        }
     }
 
     private void AlignToPlanet()

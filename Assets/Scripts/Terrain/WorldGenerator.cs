@@ -6,12 +6,15 @@ public class WorldGenerator : MonoBehaviour
 {
     public GameObject icospherePrefab;
     public PlayerController playerPrefab;
+    public GameObject chunkManagerPrefab;
+
     [Range(1000, 10000)]
     public int worldRadius = 10000;
     private Vector3 gravityCenter = Vector3.zero;
 
     private PlayerController playerInstance;
     private IcosphereGenerator worldGeneratorInstance;
+    private ChunkManager chunkManagerInstance;
 
     [SerializeField] private StatsDisplay statsDisplay;
     // Start is called before the first frame update
@@ -23,11 +26,19 @@ public class WorldGenerator : MonoBehaviour
 
     void GenerateWorld()
     {
-        GameObject world = Instantiate(icospherePrefab, gravityCenter, Quaternion.identity);
-        worldGeneratorInstance = world.GetComponent<IcosphereGenerator>();
-        if (worldGeneratorInstance != null)
+        // GameObject world = Instantiate(icospherePrefab, gravityCenter, Quaternion.identity);
+        // worldGeneratorInstance = world.GetComponent<IcosphereGenerator>();
+        // if (worldGeneratorInstance != null)
+        // {
+        //     worldGeneratorInstance.radius = worldRadius;
+        // }
+
+        GameObject realWorld = Instantiate(chunkManagerPrefab, gravityCenter, Quaternion.identity);
+        chunkManagerInstance = realWorld.GetComponent<ChunkManager>();
+        if (chunkManagerInstance != null)
         {
-            worldGeneratorInstance.radius = worldRadius;
+            chunkManagerInstance.Initialize(worldRadius, gravityCenter);
+            chunkManagerInstance.RenderChunks();
         }
     }
 
@@ -55,6 +66,6 @@ public class WorldGenerator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        worldGeneratorInstance.radius = worldRadius;
+        if(worldGeneratorInstance != null) worldGeneratorInstance.radius = worldRadius;
     }
 }

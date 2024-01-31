@@ -238,10 +238,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11aad02d1ae31d146928882eb5094841, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gravity: -9.81
   characterController: {fileID: 2908768337055788602}
-  velocityDampening: 0.997
+  airFriction: 0.003
+  groundFriction: 0.2
+  smoothTime: 0.04
   groundMovementSpeed: 5
+  jumpForce: 7
+  oxygen: 100
+  health: 100
+  hunger: 100
+  thirst: 100
+  stamina: 100
   airMovementSpeed: 7
   mouseSensitivity: 100
-  jumpForce: 5
+  isFlying: 0

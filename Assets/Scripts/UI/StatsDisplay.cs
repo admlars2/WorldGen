@@ -3,12 +3,14 @@ using UnityEngine;
 
 public class StatsDisplay : MonoBehaviour
 {
-    public KeyCode toggleKey = KeyCode.F1; // Key to toggle the stats display
-    public PlayerController player; // Reference to the Entity object
+    public KeyCode toggleKey = KeyCode.F1;
+    public PlayerController player;
+    public ChunkManager chunkManager;
 
-    public TextMeshProUGUI statsText; // Single UI TextMeshPro element to display all stats
+    public TextMeshProUGUI playerStats;
 
-    private bool statsVisible = false; // Flag to track visibility of stats
+    private bool statsVisible = false;
+    private float deltaTime = 0.0f; // New field to track time between frames
 
     public void AssignEntity(PlayerController player)
     {
@@ -17,29 +19,48 @@ public class StatsDisplay : MonoBehaviour
 
     void Update()
     {
-        // Check if the designated key is pressed
         if (Input.GetKeyDown(toggleKey))
         {
             ToggleStatsDisplay();
         }
 
-        // Update the stats display if it's visible
         if (statsVisible && player != null)
         {
             UpdateStatsDisplay();
         }
+
+        // Update deltaTime
+        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
     }
 
     void ToggleStatsDisplay()
     {
-        // Toggle the visibility of the stats
         statsVisible = !statsVisible;
-        statsText.gameObject.SetActive(statsVisible);
+        playerStats.gameObject.SetActive(statsVisible);
     }
 
     void UpdateStatsDisplay()
     {
-        // Update the TextMeshPro text with all the current stats, each on a new line
-        statsText.text = $"V: {player.velocity}\nSpeed: {player.speed}\nCoords: {player.worldCoordinates}\nGravity: {player.gravityEnabled}\nFlying: {player.isFlying}";
+        // Calculate FPS and round to nearest whole number
+        float fps = 1.0f / deltaTime;
+        int roundedFPS = Mathf.RoundToInt(fps);
+
+        // Get player coordinates and round to two decimal places
+        Vector3 playerCoordinates = player.worldCoordinates;
+        float roundedX = Mathf.Round(playerCoordinates.x * 10f) / 10f;
+        float roundedY = Mathf.Round(playerCoordinates.y * 10f) / 10f;
+        float roundedZ = Mathf.Round(playerCoordinates.z * 10f) / 10f;
+
+        // Round velocity and other values to two decimal places
+        float roundedSpeed = Mathf.Round(player.speed * 100f) / 100f;
+        float roundedGravity = Mathf.Round(player.gravity * 100f) / 100f;
+
+        // Construct the display text
+        string fpsText = $"FPS: {roundedFPS}";
+        string coordsText = $"X: {roundedX} Y: {roundedY} Z: {roundedZ}";
+        string velocityText = $"V: {player.velocity}";
+        string targetVelocity = $"tV: {player.targetVelocity}";
+        playerStats.text = $"{fpsText}\n{coordsText}\n{velocityText}\n{targetVelocity}\nSpeed: {roundedSpeed}\nGravity: {roundedGravity}";
     }
+
 }

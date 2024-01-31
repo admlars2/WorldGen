@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: -7239749658998571111}
   - component: {fileID: -4267835810867759616}
   m_Layer: 0
-  m_Name: Terrain
+  m_Name: Icosphere
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
