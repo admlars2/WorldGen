@@ -19,7 +19,7 @@ public class DualContouringTerrain : MonoBehaviour
 
 
     public ComputeShader dualContouringShader;
-    private ComputeBuffer nodeBuffer;
+    private ComputeBuffer inputBuffer;
 
     // Parameters for the terrain
     public int initialNodeSize = 50;
@@ -50,7 +50,7 @@ public class DualContouringTerrain : MonoBehaviour
         // Assuming 32 bytes per node to be safe
         int nodeStructSize = 32;
 
-        nodeBuffer = new ComputeBuffer(nodeCount, nodeStructSize);
+        inputBuffer = new ComputeBuffer(nodeCount, nodeStructSize);
 
         // Convert the nodes to the format expected by the compute buffer
         NodeData[] nodeData = new NodeData[nodeCount];
@@ -59,25 +59,25 @@ public class DualContouringTerrain : MonoBehaviour
             nodeData[i] = ConvertToNodeStruct(nodes[i]);
         }
 
-        nodeBuffer.SetData(nodeData);
+        inputBuffer.SetData(nodeData);
 
         int kernelHandle = dualContouringShader.FindKernel("CSMain");
-        dualContouringShader.SetBuffer(kernelHandle, "NodeBuffer", nodeBuffer);
+        dualContouringShader.SetBuffer(kernelHandle, "NodeBuffer", inputBuffer);
 
         // Dispatch the compute shader
         int threadGroupsX = Mathf.CeilToInt(nodeCount / 8.0f); // Adjust based on your needs
         dualContouringShader.Dispatch(kernelHandle, threadGroupsX, 1, 1);
 
         // Retrieve and process mesh data from the shader
-        // ...
+        NodeData[] meshData;
 
-        nodeBuffer.Release();
+        inputBuffer.Release();
     }
 
     void OnDestroy()
     {
-        if (nodeBuffer != null)
-            nodeBuffer.Release();
+        if (inputBuffer != null)
+            inputBuffer.Release();
     }
 
     NodeData ConvertToNodeStruct(OctreeNode node)

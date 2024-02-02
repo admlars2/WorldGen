@@ -8,7 +8,7 @@ public abstract class GravityBody : MonoBehaviour
     public CharacterController characterController;
 
     protected Vector3 worldCenter;
-    protected int worldRadius;
+    protected float worldRadius;
     [SerializeField] public Vector3 worldCoordinates { get; private set; }
 
     private Vector3 gravityDirection;
@@ -23,7 +23,7 @@ public abstract class GravityBody : MonoBehaviour
     [SerializeField] public float speed {get; private set;}
     private Vector3 lastWorldCoords = Vector3.zero;
 
-    public void Initialize(Vector3 worldCenter, int worldRadius)
+    public void Initialize(Vector3 worldCenter, float worldRadius)
     {
         this.worldCenter = worldCenter;
         this.worldRadius = worldRadius;

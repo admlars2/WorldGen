@@ -31,11 +31,6 @@ public class PlayerController : Entity
         forwardInput = Input.GetAxis("Vertical");
         sideInput = Input.GetAxis("Horizontal");
         jumpPressed = jumpPressed || Input.GetKeyDown(KeyCode.Space); // Capture jump key press
-    }
-
-    protected override void FixedUpdate()
-    {
-        base.FixedUpdate();
 
         HandleMovement();
 
@@ -44,6 +39,11 @@ public class PlayerController : Entity
             HandleJumpAndFlying();
             jumpPressed = false; // Reset jump input
         }
+    }
+
+    protected override void FixedUpdate()
+    {
+        base.FixedUpdate();
     }
 
     private void HandleJumpAndFlying()

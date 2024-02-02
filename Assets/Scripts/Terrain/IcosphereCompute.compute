@@ -1,0 +1,28 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+int RecursionLevel;
+
+RWStructuredBuffer<float3> Vertices;
+RWStructuredBuffer<int> Triangles;
+
+[numthreads(8,8,8)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    // Determine the work item (e.g., which triangle) this thread should handle
+    int triangleIndex = /* Calculate based on id and other parameters */;
+
+    // Each thread works on a single triangle at a time
+    if (triangleIndex < Triangles.Length / 3) {
+        // Perform subdivision based on RecursionLevel
+        // This is where the complex logic of subdividing and managing vertices comes in
+        // You might need additional buffers or shared memory to manage new vertices and triangle indices
+
+        // Example of subdivision (highly simplified):
+        // - Compute midpoints of edges of the triangle
+        // - Create new triangles
+        // - Store them in the Triangles buffer
+        // - Add new vertices to the Vertices buffer (avoiding duplicates)
+
+        // Synchronization might be necessary if shared resources are being modified
+    }
+}

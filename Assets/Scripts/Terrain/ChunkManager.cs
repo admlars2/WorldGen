@@ -2,227 +2,140 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 
-
 public class ChunkManager : MonoBehaviour {
-    // Assume you have a class representing a chunk
-
-    [SerializeField] private int textureResolution = 100;
-    [SerializeField] private Material chunkMaterial;
-
-    private int worldRadius;
+    
+    private int chunkManagerRecursionLevel;
+    private int edgeSize;
+    private float radius;
     private Vector3 worldCenter;
+    private Vector3[] chunkManagerVertices;
+
+    public Vector3 center {get; private set;}
+
+
     private Dictionary<Vector3, Chunk> loadedChunks;
     private Dictionary<Vector3, Chunk> chunks;
 
-    void Start() {
+    public List<ChunkManager> neighborManagers;
+
+    private List<Vector3> originalVertices = new List<Vector3>();
+    private List<int> originalTriangles = new List<int>();
+    private List<Vector3> refinedVertices = new List<Vector3>();
+    private List<int> refinedTriangles = new List<int>();
+
+    private bool generated = false;
+
+    public void Initialize(int chunkManagerRecursionLevel, int edgeSize, float radius, Vector3 worldCenter, Vector3[] chunkManagerVertices)
+    {
         loadedChunks = new Dictionary<Vector3, Chunk>();
-    }
+        chunks = new Dictionary<Vector3, Chunk>();
+        neighborManagers = new List<ChunkManager>();
 
-    public void Initialize(int radius, Vector3 center)
-    {
-        worldRadius = radius;
-        worldCenter = center;
-
-        GenerateChunks();
-    }
-
-    void GenerateChunks()
-    {
-        IcosphereChunkGenerator chunkGenerator = new IcosphereChunkGenerator(worldRadius, textureResolution, worldCenter);
-        chunks = chunkGenerator.GenerateChunks();
-    }
-
-    public void RenderChunks()
-    {
-        int chunkCount = 0;
-        foreach (var chunkEntry in chunks)
-        {
-            //if (chunkCount >= 120) break;
-            CreateChunkGameObject(chunkEntry.Value);
-            chunkCount++;
-        }
-    }
-
-    void CreateChunkGameObject(Chunk chunk)
-    {
-        chunk.Generate();
-
-        GameObject chunkObject = new GameObject($"Chunk {chunk.center}");
-        chunkObject.transform.parent = this.transform;
-
-        MeshRenderer meshRenderer = chunkObject.AddComponent<MeshRenderer>();
-        meshRenderer.material = chunkMaterial;
-
-        MeshFilter meshFilter = chunkObject.AddComponent<MeshFilter>();
-        meshFilter.mesh = chunk.GenerateMesh();
-
-        MeshCollider meshCollider = chunkObject.AddComponent<MeshCollider>();
-        meshCollider.sharedMesh = meshFilter.mesh;
-    }
-
-    void Update() {
-        // Update chunk loading/unloading based on player position
-    }
-
-    void LoadChunk(Vector3 chunkId) {
-        // Load or generate the chunk based on its ID
-    }
-
-    void UnloadChunk(Vector3 chunkId) {
-        // Unload the chunk
-    }
-
-    string DeterminePlayerChunk() {
-        // Determine which chunk the player is currently on
-        return "";
-    }
-}
-
-public class IcosphereChunkGenerator
-{
-    private float PHI = (1f + Mathf.Sqrt(5f)) / 2f;
-    private const int RESOLUTION = 3;
-
-    private int radius;
-    private Vector3 center;
-    private int textureResolution;
-
-    public List<Vector3> vertices { get; private set; }
-    public List<int> triangles { get; private set; }
-
-    public IcosphereChunkGenerator(int radius, int textureResolution, Vector3 center)
-    {
+        this.chunkManagerRecursionLevel = chunkManagerRecursionLevel;
+        this.edgeSize = edgeSize;
         this.radius = radius;
-        this.textureResolution = textureResolution;
-        this.center = center;
+        this.worldCenter = worldCenter;
+        this.chunkManagerVertices = chunkManagerVertices;
+
+        center = Utils.CalculateCenter(chunkManagerVertices); // Ensure Utils.CalculateCenter is accessible and correctly implemented
     }
 
-    public Dictionary<Vector3, Chunk> GenerateChunks()
+    public void AddNeighbor(ChunkManager chunkManager)
     {
-        vertices = new List<Vector3>();
-        triangles = new List<int>();
-
-        // Add initial vertices
-        vertices.Add(new Vector3(-1f, PHI, 0f).normalized * radius);
-        vertices.Add(new Vector3(1f, PHI, 0f).normalized * radius);
-        vertices.Add(new Vector3(-1f, -PHI, 0f).normalized * radius);
-        vertices.Add(new Vector3(1f, -PHI, 0f).normalized * radius);
-        vertices.Add(new Vector3(0f, -1f, PHI).normalized * radius);
-        vertices.Add(new Vector3(0f, 1f, PHI).normalized * radius);
-        vertices.Add(new Vector3(0f, -1f, -PHI).normalized * radius);
-        vertices.Add(new Vector3(0f, 1f, -PHI).normalized * radius);
-        vertices.Add(new Vector3(PHI, 0f, -1f).normalized * radius);
-        vertices.Add(new Vector3(PHI, 0f, 1f).normalized * radius);
-        vertices.Add(new Vector3(-PHI, 0f, -1f).normalized * radius);
-        vertices.Add(new Vector3(-PHI, 0f, 1f).normalized * radius);
-
-        // Add initial triangles
-        AddTriangle(0, 11, 5);
-        AddTriangle(0, 5, 1);
-        AddTriangle(0, 1, 7);
-        AddTriangle(0, 7, 10);
-        AddTriangle(0, 10, 11);
-        AddTriangle(1, 5, 9);
-        AddTriangle(5, 11, 4);
-        AddTriangle(11, 10, 2);
-        AddTriangle(10, 7, 6);
-        AddTriangle(7, 1, 8);
-        AddTriangle(3, 9, 4);
-        AddTriangle(3, 4, 2);
-        AddTriangle(3, 2, 6);
-        AddTriangle(3, 6, 8);
-        AddTriangle(3, 8, 9);
-        AddTriangle(4, 9, 5);
-        AddTriangle(2, 4, 11);
-        AddTriangle(6, 2, 10);
-        AddTriangle(8, 6, 7);
-        AddTriangle(9, 8, 1);
-
-        // Refine triangles
-        for (int i = 0; i < RESOLUTION; i++)
+        if (!neighborManagers.Contains(chunkManager))
         {
-            RefineTriangles();
+            neighborManagers.Add(chunkManager);
+            chunkManager.neighborManagers.Add(this);
         }
-
-        Dictionary<Vector3, Chunk> chunks = new Dictionary<Vector3, Chunk>();
-        Dictionary<(int, int), Chunk> edgeToChunk = new Dictionary<(int, int), Chunk>();
-
-        for (int i = 0; i < triangles.Count; i+=3)
-        {
-            Vector3[] chunkVertices = new Vector3[3] {
-                vertices[triangles[i]],
-                vertices[triangles[i+1]],
-                vertices[triangles[i+2]]
-            };
-
-            Chunk chunk = new Chunk(radius, textureResolution, center, chunkVertices);
-            AssignNeighbors(chunk, triangles[i], triangles[i+1], triangles[i+2], edgeToChunk);
-            chunks.Add(chunk.center, chunk);
-        }
-
-        return chunks;
     }
 
-    private void AssignNeighbors(Chunk chunk, int v1, int v2, int v3, Dictionary<(int, int), Chunk> edgeToChunk)
-    {
-        var edges = new[] { (v1, v2), (v2, v3), (v3, v1) };
+    public void GenerateChunks() {
+        if (!generated) {
+            originalVertices = new List<Vector3>(chunkManagerVertices);
+            // Assuming your initial mesh is a single triangle. Adjust if your mesh has more triangles.
+            originalTriangles = new List<int>{0, 1, 2};
 
-        foreach (var edge in edges) {
-            if (edgeToChunk.TryGetValue(edge, out Chunk neighbor))
-            {
-                chunk.AddNeighbor(neighbor);
+            refinedVertices = new List<Vector3>(originalVertices);
+            refinedTriangles = new List<int>(originalTriangles);
+
+            Debug.Log($"Recursion Level: {chunkManagerRecursionLevel}");
+
+            for (int i = 0; i < 1; i++) {
+                // RefineTriangles should modify the refinedVertices and refinedTriangles directly
+                RefineTriangles();
             }
-            edgeToChunk[edge] = chunk;
+
+            generated = true;
         }
     }
 
-    private void AddTriangle(int v1, int v2, int v3)
-    {
-        triangles.Add(v1);
-        triangles.Add(v2);
-        triangles.Add(v3);
-    }
 
     private void RefineTriangles()
     {
-        var newTriangles = new List<int>();
-        var midPointCache = new Dictionary<int, int>();
+        List<int> newTriangles = new List<int>();
+        Dictionary<long, int> midPointCache = new Dictionary<long, int>(); // Use long for larger key space
 
-        for (int i = 0; i < triangles.Count; i += 3)
+        for (int i = 0; i < refinedTriangles.Count; i += 3)
         {
-            int a = triangles[i];
-            int b = triangles[i + 1];
-            int c = triangles[i + 2];
+            int a = refinedTriangles[i];
+            int b = refinedTriangles[i + 1];
+            int c = refinedTriangles[i + 2];
 
             int ab = GetMidPointIndex(midPointCache, a, b);
             int bc = GetMidPointIndex(midPointCache, b, c);
             int ca = GetMidPointIndex(midPointCache, c, a);
 
-            newTriangles.Add(a); newTriangles.Add(ab); newTriangles.Add(ca);
-            newTriangles.Add(b); newTriangles.Add(bc); newTriangles.Add(ab);
-            newTriangles.Add(c); newTriangles.Add(ca); newTriangles.Add(bc);
-            newTriangles.Add(ab); newTriangles.Add(bc); newTriangles.Add(ca);
+            newTriangles.AddRange(new[] {a, ab, ca});
+            newTriangles.AddRange(new[] {ab, b, bc});
+            newTriangles.AddRange(new[] {ca, bc, c});
+            newTriangles.AddRange(new[] {ab, bc, ca});
         }
 
-        triangles = newTriangles;
+        refinedTriangles = newTriangles; // Update the triangles list with the new set of refined triangles
     }
 
-    private int GetMidPointIndex(Dictionary<int, int> cache, int index1, int index2)
+    private int GetMidPointIndex(Dictionary<long, int> cache, int index1, int index2)
     {
-        int smallerIndex = Mathf.Min(index1, index2);
-        int greaterIndex = Mathf.Max(index1, index2);
-        int key = (smallerIndex << 16) + greaterIndex;
+        long smallerIndex = Mathf.Min(index1, index2);
+        long greaterIndex = Mathf.Max(index1, index2);
+        long key = (smallerIndex << 32) | greaterIndex; // Create a unique key for each edge
 
-        if (cache.TryGetValue(key, out int ret))
+        if (cache.TryGetValue(key, out int existingVertexIndex))
         {
-            return ret;
+            return existingVertexIndex;
         }
 
-        Vector3 middle = (vertices[index1] + vertices[index2]).normalized * radius;
-        int newIndex = vertices.Count;
-        vertices.Add(middle);
+        Vector3 midpoint = (refinedVertices[index1] + refinedVertices[index2]) * 0.5f;
+        midpoint = midpoint.normalized * radius; // Ensure the midpoint is correctly positioned on the sphere's surface
+        int midpointIndex = refinedVertices.Count;
+        refinedVertices.Add(midpoint);
 
-        cache[key] = newIndex;
-        return newIndex;
+        cache[key] = midpointIndex;
+        return midpointIndex;
+    }
+
+
+    void OnDrawGizmos() {
+        // Draw original edges in yellow
+
+        // Draw refined edges in cyan
+        Gizmos.color = Color.cyan;
+        foreach (var tri in refinedTriangles) {
+            if (!originalTriangles.Contains(tri)) {
+                // This checks if the triangle index is part of the new (refined) triangles but not the original
+                // Note: This simple check may not work correctly for all cases, especially if originalTriangles contain similar indices by coincidence
+                // You may need a more sophisticated method to differentiate between original and refined triangles
+                Gizmos.DrawLine(refinedVertices[tri], refinedVertices[(tri + 1) % refinedVertices.Count]);
+                Gizmos.DrawLine(refinedVertices[(tri + 1) % refinedVertices.Count], refinedVertices[(tri + 2) % refinedVertices.Count]);
+                Gizmos.DrawLine(refinedVertices[(tri + 2) % refinedVertices.Count], refinedVertices[tri]);
+            }
+        }
+
+        Gizmos.color = Color.yellow;
+        for (int i = 0; i < originalTriangles.Count; i += 3) {
+            Gizmos.DrawLine(originalVertices[originalTriangles[i]], originalVertices[originalTriangles[i + 1]]);
+            Gizmos.DrawLine(originalVertices[originalTriangles[i + 1]], originalVertices[originalTriangles[i + 2]]);
+            Gizmos.DrawLine(originalVertices[originalTriangles[i + 2]], originalVertices[originalTriangles[i]]);
+        }
     }
 }
