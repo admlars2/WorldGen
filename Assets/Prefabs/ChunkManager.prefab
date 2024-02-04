@@ -44,5 +44,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92957046503f30d4197604d540711fa4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  textureResolution: 100
-  chunkMaterial: {fileID: 2100000, guid: 62eeb2f8590a34046bba62763c8eb5d8, type: 2}
+  chunkPrefab: {fileID: 1272944869599041989, guid: b940e16edebf88c43ab6cbbd4d5ef77b, type: 3}
+  neighborManagers: []
+  showGizmos: 1

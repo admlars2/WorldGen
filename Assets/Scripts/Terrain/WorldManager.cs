@@ -1,26 +1,22 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
+using System.Linq;
 
-public class ChunkManagerSettings {
-    public int chunkManagerRecursionLevel;
-    public int edgeSize;
+public class ChunkManagerSettings : INeighborAssignable {
     public float worldRadius;
     public Vector3 worldCenter;
-    public Vector3 center; 
+    public Vector3 center { get; private set;} 
     public Vector3[] managerVertices;
 
     List<Vector3> neighbors;
 
-    public ChunkManagerSettings(int chunkManagerRecursionLevel, int edgeSize, float radius, Vector3 center, Vector3[] managerVertices) {
+    public ChunkManagerSettings(float radius, Vector3 center, Vector3[] managerVertices) {
         neighbors = new List<Vector3>();
 
-        this.chunkManagerRecursionLevel = chunkManagerRecursionLevel;
-        this.edgeSize = edgeSize;
-        this.worldRadius = radius;
-        this.worldCenter = center;
+        worldRadius = radius;
+        worldCenter = center;
+
         this.center = Utils.CalculateCenter(managerVertices);
         this.managerVertices = managerVertices;
     }
@@ -39,59 +35,85 @@ public class ChunkManagerSettings {
 
 public class WorldManager : MonoBehaviour
 {
+
+
+    [Header("Temp")]
+    [Range(16, 256)]
+    [SerializeField] private int renderAmount = 256; 
+
+    [Header("Regular")]
     [SerializeField] private GameObject chunkManagerPrefab;
 
     private int recursionLevel;
-    private int worldManagerRecursionLevel = 6;
-    private int chunkManagerRecursionLevel
-    {
-        get
-        {
-            return recursionLevel - worldManagerRecursionLevel;
-        }
-    }
 
-    private int edgeSize;
     private float worldRadius;
     private Vector3 worldCenter;
 
     private Dictionary<Vector3, ChunkManager> loadedChunkManagers;
     private Dictionary<Vector3, ChunkManagerSettings> chunkManagerSettings;
+
+    private bool generated = false;
     
-    public void Initialize(int recursionLevel, int edgeSize, float worldRadius, Vector3 worldCenter)
+    public void Initialize(int recursionLevel, float worldRadius, Vector3 worldCenter)
     {
         loadedChunkManagers = new Dictionary<Vector3, ChunkManager>();
         chunkManagerSettings = new Dictionary<Vector3, ChunkManagerSettings>();
         
         this.recursionLevel = recursionLevel;
-        this.edgeSize = edgeSize;
         this.worldRadius = worldRadius;
         this.worldCenter = worldCenter;
     }
 
     public void GenerateChunkManagerSettings()
     {
-        IcosphereManagerGenerator managerGenerator = new IcosphereManagerGenerator(worldManagerRecursionLevel, chunkManagerRecursionLevel, edgeSize, worldRadius, worldCenter);
-        chunkManagerSettings = managerGenerator.GenerateManagers();
+        if(!generated)
+        {
+            IcosphereManagerGenerator managerGenerator = new IcosphereManagerGenerator(recursionLevel, worldRadius, worldCenter);
+            chunkManagerSettings = managerGenerator.GenerateManagers();
+
+            generated = true;
+        }
     }
 
     public void LoadWorld() {
+        List<float> managerEdgeLengths = new List<float>();
+        List<float> chunkEdgeLengths = new List<float>();
         int count = 0;
 
-        foreach (KeyValuePair<Vector3, ChunkManagerSettings> entry in chunkManagerSettings) {
-            if (count >= 20) break;
+        foreach (KeyValuePair<Vector3, ChunkManagerSettings> entry in chunkManagerSettings)
+        {
+            if (count >= renderAmount) break;
 
-            GameObject chunkManagerObject = Instantiate(chunkManagerPrefab, entry.Value.center, Quaternion.identity, transform);
+            GameObject chunkManagerObject = Instantiate(chunkManagerPrefab, Vector3.zero, Quaternion.identity, transform);
             ChunkManager chunkManager = chunkManagerObject.GetComponent<ChunkManager>();
             if (chunkManager != null) {
-                chunkManager.Initialize(entry.Value.chunkManagerRecursionLevel, entry.Value.edgeSize, entry.Value.worldRadius, entry.Value.worldCenter, entry.Value.managerVertices);
+                chunkManager.Initialize(entry.Value.worldRadius, entry.Value.worldCenter, entry.Value.center, entry.Value.managerVertices);
                 loadedChunkManagers.Add(entry.Key, chunkManager);
 
                 chunkManager.GenerateChunks();
+                chunkManager.LoadChunks();
+
+                managerEdgeLengths.Add(chunkManager.getAverageEdgeLength());
+                chunkEdgeLengths.Add(chunkManager.averageChunkLength);
             }
 
             count++;
         }
+
+        if (managerEdgeLengths.Count > 0) {
+            float averageManagerEdgeLength = managerEdgeLengths.Average();
+            Debug.Log($"Average Manager Edge Length: {averageManagerEdgeLength}");
+        } else {
+            Debug.Log("No manager edge lengths to average.");
+        }
+
+        if (chunkEdgeLengths.Count > 0) {
+            float averageChunkEdgeLength = chunkEdgeLengths.Average();
+            Debug.Log($"Average Chunk Edge Length: {averageChunkEdgeLength}");
+        } else {
+            Debug.Log("No chunk edge lengths to average.");
+        }
+
     }
 
 
@@ -101,31 +123,11 @@ public class WorldManager : MonoBehaviour
     }
 }
 
-public class IcosphereManagerGenerator
+public class IcosphereManagerGenerator : IcosphereBase
 {
     private float PHI = (1f + Mathf.Sqrt(5f)) / 2f;
-    
-    private int recursionLevel;
-    private int chunkManagerRecursionLevel;
 
-    private float radius;
-    private int edgeSize;
-    private Vector3 center;
-
-    public List<Vector3> vertices { get; private set; }
-    public List<int> triangles { get; private set; }
-
-    public IcosphereManagerGenerator(int recursionLevel, int chunkManagerRecursionLevel, int edgeSize, float radius, Vector3 center)
-    {
-        vertices = new List<Vector3>();
-        triangles = new List<int>();
-
-        this.recursionLevel = recursionLevel;
-        this.chunkManagerRecursionLevel = chunkManagerRecursionLevel;
-        this.radius = radius;
-        this.center = center;
-        this.edgeSize = edgeSize;
-    }
+    public IcosphereManagerGenerator(int recursionLevel, float radius, Vector3 center) : base(recursionLevel, radius, center){}
 
     public Dictionary<Vector3, ChunkManagerSettings> GenerateManagers()
     {
@@ -168,11 +170,7 @@ public class IcosphereManagerGenerator
         AddTriangle(8, 6, 7);
         AddTriangle(9, 8, 1);
         
-        // Refine triangles
-        for (int i = 0; i < recursionLevel; i++)
-        {
-            RefineTriangles();
-        }
+        Refine();
 
         Dictionary<Vector3, ChunkManagerSettings> managerSettingsDict = new Dictionary<Vector3, ChunkManagerSettings>();
         Dictionary<(int, int), ChunkManagerSettings> edgetoChunkManager = new Dictionary<(int, int), ChunkManagerSettings>();
@@ -185,77 +183,11 @@ public class IcosphereManagerGenerator
                 vertices[triangles[i+2]]
             };
 
-            ChunkManagerSettings managerSettings = new ChunkManagerSettings(chunkManagerRecursionLevel, edgeSize, radius, center, chunkVertices);
+            ChunkManagerSettings managerSettings = new ChunkManagerSettings(radius, center, chunkVertices);
             AssignNeighbors(managerSettings, triangles[i], triangles[i+1], triangles[i+2], edgetoChunkManager);
             managerSettingsDict.Add(managerSettings.center, managerSettings);
         }
 
         return managerSettingsDict;
-    }
-
-    private void AssignNeighbors(ChunkManagerSettings settings, int v1, int v2, int v3, Dictionary<(int, int), ChunkManagerSettings> edgeToChunkManager)
-    {
-        var edges = new[] { (v1, v2), (v2, v3), (v3, v1) };
-
-        foreach (var edge in edges) {
-            if (edgeToChunkManager.TryGetValue(edge, out ChunkManagerSettings neighbor))
-            {
-                if(settings.AddNeighbor(neighbor.center))
-                {
-                    neighbor.AddNeighbor(settings.center);
-                }
-            }
-            edgeToChunkManager[edge] = settings;
-        }
-    }
-
-    private void AddTriangle(int v1, int v2, int v3)
-    {
-        triangles.Add(v1);
-        triangles.Add(v2);
-        triangles.Add(v3);
-    }
-
-    private void RefineTriangles()
-    {
-        var newTriangles = new List<int>();
-        var midPointCache = new Dictionary<int, int>();
-
-        for (int i = 0; i < triangles.Count; i += 3)
-        {
-            int a = triangles[i];
-            int b = triangles[i + 1];
-            int c = triangles[i + 2];
-
-            int ab = GetMidPointIndex(midPointCache, a, b);
-            int bc = GetMidPointIndex(midPointCache, b, c);
-            int ca = GetMidPointIndex(midPointCache, c, a);
-
-            newTriangles.Add(a); newTriangles.Add(ab); newTriangles.Add(ca);
-            newTriangles.Add(b); newTriangles.Add(bc); newTriangles.Add(ab);
-            newTriangles.Add(c); newTriangles.Add(ca); newTriangles.Add(bc);
-            newTriangles.Add(ab); newTriangles.Add(bc); newTriangles.Add(ca);
-        }
-
-        triangles = newTriangles;
-    }
-
-    private int GetMidPointIndex(Dictionary<int, int> cache, int index1, int index2)
-    {
-        int smallerIndex = Mathf.Min(index1, index2);
-        int greaterIndex = Mathf.Max(index1, index2);
-        int key = (smallerIndex << 16) + greaterIndex;
-
-        if (cache.TryGetValue(key, out int ret))
-        {
-            return ret;
-        }
-
-        Vector3 middle = (vertices[index1] + vertices[index2]).normalized * radius;
-        int newIndex = vertices.Count;
-        vertices.Add(middle);
-
-        cache[key] = newIndex;
-        return newIndex;
     }
 }

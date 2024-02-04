@@ -2,15 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Chunk
+public class Chunk : MonoBehaviour
 {
-    private const float TAU = Mathf.PI * 2f;
-
-    private int worldRadius;
+    private float worldRadius;
     private Vector3 worldCenter;
-    private int textureResolution;
 
-    public Vector3[] vertices {get; private set;}
+    public Vector3[] chunkVertices {get; private set;}
     public Vector3 center {get; private set;}
     public List<Chunk> neighbors {get; private set;}
 
@@ -18,30 +15,32 @@ public class Chunk
     private List<int> tris;
     private List<Vector2> uvs;
 
+    private List<Color> colors;
+
+    Mesh mesh;
+    MeshFilter meshFilter;
+    MeshCollider meshCollider;
+
     private bool hasGenerated = false;
 
-    public Chunk(int radius, int textureResolution, Vector3 worldCenter, Vector3[] vertices)
+    [SerializeField] private bool showGizmos = true;
+
+    public void Initialize(float worldRadius, Vector3 worldCenter, Vector3 chunkCenter, Vector3[] vertices)
     {
         verts = new List<Vector3>();
         tris = new List<int>();
         uvs = new List<Vector2>();
 
-        this.vertices = vertices;
-        center = CalculateCenter();
+        chunkVertices = vertices;
+        center = chunkCenter;
         neighbors = new List<Chunk>();
 
-        worldRadius = radius;
+        this.worldRadius = worldRadius;
         this.worldCenter = worldCenter;
-        this.textureResolution = textureResolution;
-    }
 
-    private Vector3 CalculateCenter()
-    {
-        float x = (vertices[0].x + vertices[1].x + vertices[2].x) / 3;
-        float y = (vertices[0].y + vertices[1].y + vertices[2].y) / 3;
-        float z = (vertices[0].z + vertices[1].z + vertices[2].z) / 3;
-
-        return new Vector3(x, y, z);
+        mesh = new Mesh();
+        meshFilter = GetComponent<MeshFilter>();
+        meshCollider = GetComponent<MeshCollider>();
     }
 
     public void AddNeighbor(Chunk neighbor)
@@ -57,77 +56,93 @@ public class Chunk
     {
         if (!hasGenerated)
         {
-            Subdivide();
+            VerticeGenerator verticeGenerator = new VerticeGenerator(worldRadius, worldCenter, chunkVertices);
+            verticeGenerator.GenerateVertices();
+
+            verts = verticeGenerator.vertices;
+            tris = verticeGenerator.triangles;
+
+            GenerateUVs();
+            GenerateColors(verts.Count); // Generate colors for each vertex
+
+            mesh.vertices = verts.ToArray();
+            mesh.triangles = tris.ToArray();
+            mesh.colors = colors.ToArray(); // Apply colors to the mesh
+
+            mesh.RecalculateNormals();
+            meshFilter.mesh = mesh;
+            meshCollider.sharedMesh = mesh;
+
             hasGenerated = true;
         }
     }
 
-    void Subdivide()
+    private void GenerateColors(int vertexCount)
     {
-        // Clear existing data
-        verts.Clear();
-        tris.Clear();
-        uvs.Clear();
-
-        // Add original vertices
-        verts.AddRange(vertices);
-
-        // Calculate midpoints and add them
-        int midpointIndex1 = AddMidpoint(vertices[0], vertices[1]);
-        int midpointIndex2 = AddMidpoint(vertices[1], vertices[2]);
-        int midpointIndex3 = AddMidpoint(vertices[2], vertices[0]);
-
-        // Add new triangles using the correct indices
-        AddTriangle(0, midpointIndex1, midpointIndex3);
-        AddTriangle(midpointIndex1, 1, midpointIndex2);
-        AddTriangle(midpointIndex1, midpointIndex2, midpointIndex3);
-        AddTriangle(midpointIndex3, midpointIndex2, 2);
-
-        UpdateUVs();
-    }
-
-    private int AddMidpoint(Vector3 a, Vector3 b)
-    {
-        Vector3 midpoint = (a + b) / 2;
-        if (!verts.Contains(midpoint))
+        colors = new List<Color>(vertexCount);
+        for (int i = 0; i < vertexCount; i++)
         {
-            verts.Add(midpoint);
-            return verts.Count - 1; // Return the index of the newly added midpoint
-        }
-        else
-        {
-            return verts.IndexOf(midpoint); // Return the index of the existing midpoint
+            float green = Random.Range(0.1f, 1f); // Adjust these values for desired darkness
+            colors.Add(new Color(0f, green, 0f));
         }
     }
 
-    private void AddTriangle(int a, int b, int c)
+    private void GenerateUVs()
     {
-        tris.Add(a);
-        tris.Add(b);
-        tris.Add(c);
-    }
-
-    private void UpdateUVs()
-    {
-        foreach (var vertex in verts)
+        uvs = new List<Vector2>(verts.Count);
+        for (int i = 0; i < verts.Count; i++)
         {
-            Vector2 uv = new Vector2();
-            uv.x = (Mathf.Atan2(vertex.x, vertex.z) / TAU + 0.5f) * textureResolution;
-            uv.y = (Mathf.Asin(vertex.y / worldRadius) / Mathf.PI + 0.5f) * textureResolution;
-            uvs.Add(uv);
+            uvs.Add(new Vector2(verts[i].x, verts[i].z)); // This is a simple mapping; adjust as needed
         }
+        mesh.uv = uvs.ToArray(); // Apply UVs to the mesh
     }
 
-    public Mesh GenerateMesh()
+
+    private void OnDrawGizmos() {
+        if (!showGizmos) return;
+
+        if (verts == null || tris == null) return;
+
+        Gizmos.color = Color.cyan;
+
+        // Loop through each set of three indices in 'tris'
+        for (int i = 0; i < tris.Count; i += 3) {
+            if (i + 2 < tris.Count) { // Check to prevent out-of-bounds error
+                Vector3 v1 = verts[tris[i]];     // First vertex of the triangle
+                Vector3 v2 = verts[tris[i + 1]]; // Second vertex of the triangle
+                Vector3 v3 = verts[tris[i + 2]]; // Third vertex of the triangle
+
+                // Draw lines between the vertices
+                Gizmos.DrawLine(v1, v2);
+                Gizmos.DrawLine(v2, v3);
+                Gizmos.DrawLine(v3, v1);
+            }
+        }
+
+        Gizmos.color = Color.red;
+
+        Vector3 cv1 = chunkVertices[0];
+        Vector3 cv2 = chunkVertices[1];
+        Vector3 cv3 = chunkVertices[2];
+
+        Gizmos.DrawLine(cv1, cv2);
+        Gizmos.DrawLine(cv2, cv3);
+        Gizmos.DrawLine(cv3, cv1);
+    }
+}
+
+public class VerticeGenerator : IcosphereBase
+{
+    
+
+    public VerticeGenerator(float radius, Vector3 center, Vector3[] chunkVertices) : base(3, radius, center)
     {
-        Mesh mesh = new Mesh();
+        vertices = new List<Vector3>(chunkVertices);
+        triangles = new List<int>{0, 1, 2};
+    }
 
-        mesh.vertices = verts.ToArray();
-        mesh.triangles = tris.ToArray();
-        mesh.uv = uvs.ToArray();
-
-        mesh.RecalculateNormals();
-
-        return mesh;
+    public void GenerateVertices()
+    {
+        Refine();
     }
 }

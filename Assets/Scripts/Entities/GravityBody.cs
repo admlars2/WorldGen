@@ -90,30 +90,32 @@ public abstract class GravityBody : MonoBehaviour
     private void AlignToPlanet()
     {
         Quaternion toRotation = Quaternion.FromToRotation(transform.up, gravityDirection) * transform.rotation;
-        transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, 50 * Time.deltaTime);
+        transform.rotation = Quaternion.Slerp(transform.rotation, toRotation, 60 * Time.deltaTime);
     }
     private void UpdateCoordinates()
     {
         gravityDirection = (transform.position - worldCenter).normalized;
         float distanceToCenter = Vector3.Distance(transform.position, worldCenter);
 
-        // Calculating latitude and longitude
+        // Calculating latitude and longitude in degrees
         float latitude = Mathf.Asin(gravityDirection.y) * Mathf.Rad2Deg; // -90 to 90 degrees
         float longitude = Mathf.Atan2(gravityDirection.z, gravityDirection.x) * Mathf.Rad2Deg; // -180 to 180 degrees
 
-        // Scaling factors (assuming circumference = 2 * π * radius)
-        float scaleFactor = 180f / Mathf.PI;
+        // Scaling factors based on the circumference
+        float longitudeScaleFactor = 2 * Mathf.PI * worldRadius / 360f; // Circumference divided by 360 degrees
+        float latitudeScaleFactor = Mathf.PI * worldRadius / 180f; // Half circumference divided by 180 degrees
 
-        // Scale the latitude and longitude
-        latitude *= scaleFactor;
-        longitude *= scaleFactor;
+        // Scale longitude and latitude
+        float scaledLongitude = longitude * longitudeScaleFactor;
+        float scaledLatitude = latitude * latitudeScaleFactor;
 
-        // Vertical distance from the surface
+        // Vertical distance from the surface to handle altitude
         float verticalDistance = distanceToCenter - worldRadius;
 
-        // Assign the calculated values to relativeCoordinates
-        worldCoordinates = new Vector3(longitude, verticalDistance, latitude);
+        // Assign the calculated scaled coordinates
+        worldCoordinates = new Vector3(scaledLongitude, verticalDistance, scaledLatitude);
     }
+
 
     public void Teleport(Vector3 worldCoords)
     {

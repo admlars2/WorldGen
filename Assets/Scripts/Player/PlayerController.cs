@@ -3,7 +3,8 @@ using UnityEngine;
 
 public class PlayerController : Entity
 {
-    public float airMovementSpeed = 7.0f; // Faster movement speed in the air
+    public float airMovementSpeed = 7.0f; // Base movement speed in the air
+    public float airSprintSpeed = 400.0f; // Increased movement speed in the air when sprinting
     public float mouseSensitivity = 100.0f;
 
     private float upDownRange = 60.0f;
@@ -65,7 +66,6 @@ public class PlayerController : Entity
         setVelocityY(jumpForce);
     }
 
-
     void HandleRotation()
     {
         float rotLeftRight = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
@@ -78,11 +78,15 @@ public class PlayerController : Entity
 
     void HandleMovement()
     {
-        // Use captured input
         float currentSpeed = isFlying ? airMovementSpeed : groundMovementSpeed;
 
-        Vector3 newVelocity = (forwardDir * forwardInput + rightDir * sideInput).normalized * currentSpeed;
+        // Check if the Ctrl key is pressed for sprinting in the air
+        if (isFlying && Input.GetKey(KeyCode.LeftControl))
+        {
+            currentSpeed = airSprintSpeed; // Use sprint speed if flying and Ctrl is pressed
+        }
 
+        Vector3 newVelocity = (forwardDir * forwardInput + rightDir * sideInput).normalized * currentSpeed;
         setTargetVelocityXZ(newVelocity.x, newVelocity.z);
 
         if (isFlying) HandleFlying();
@@ -90,17 +94,22 @@ public class PlayerController : Entity
 
     void HandleFlying()
     {
+        float verticalSpeed = 0;
         if (Input.GetKey(KeyCode.LeftShift))
         {
-            setVelocityY(-airMovementSpeed);
+            verticalSpeed = -airMovementSpeed;
         }
         else if (Input.GetKey(KeyCode.Space))
         {
-            setVelocityY(airMovementSpeed);
+            verticalSpeed = airMovementSpeed;
         }
-        else
+
+        // Adjust vertical speed for sprinting in the air
+        if (Input.GetKey(KeyCode.LeftControl))
         {
-            setVelocityY(0);
+            verticalSpeed *= (airSprintSpeed / airMovementSpeed); // Increase vertical speed based on sprint multiplier
         }
+
+        setVelocityY(verticalSpeed);
     }
 }

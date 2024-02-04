@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public enum WorldSize {
@@ -25,28 +22,46 @@ public class WorldGenerator : MonoBehaviour
             switch (worldSize)
             {
                 case WorldSize.Small:
-                    return 8;
+                    return 6;
                 case WorldSize.Medium:
-                    return 9;
+                    return 7;
                 case WorldSize.Large:
-                    return 10;
+                    return 8;
                 case WorldSize.Extreme:
-                    return 11;
+                    return 9;
                 case WorldSize.Tiny:
                 default:
-                    return 7;
+                    return 5;
             }
         }
     }
 
-    [SerializeField] private int edgeLength = 12;
+    private int circumfrence
+    {
+        get
+        {
+            switch (worldSize)
+            {
+                case WorldSize.Small:
+                    return 21312;
+                case WorldSize.Medium:
+                    return 42624;
+                case WorldSize.Large:
+                    return 85248;
+                case WorldSize.Extreme:
+                    return 170496;
+                case WorldSize.Tiny:
+                default:
+                    return 10656; // 666 x 16
+            }
+        }
+    } 
 
     private float worldRadius
     {
         get
         {
-            float originalEdgeLength = edgeLength * Mathf.Pow(recursionLevel, 2);
-            return originalEdgeLength/4*Mathf.Sqrt(10f + 2*Mathf.Sqrt(5f));
+            return circumfrence / (2*Mathf.PI);
         }
     }
     
@@ -71,19 +86,17 @@ public class WorldGenerator : MonoBehaviour
 
     void CreateSpawnPoint()
     {
-        // Angle for spawning the player on the equator
-        float angle = UnityEngine.Random.Range(0f, 360f);
+        // Given Cartesian coordinates
+        Vector3 cartesianCoords = new Vector3(-14460, 22956, 490);
 
-        // Calculate spawn point on the equator
-        spawnPoint = new Vector3(
-            Mathf.Cos(angle * Mathf.Deg2Rad) * worldRadius, 
-            0, // Y coordinate is 0 to be on the equator
-            Mathf.Sin(angle * Mathf.Deg2Rad) * worldRadius
-        );
+        // Normalize the vector to have a magnitude of 1, then scale it to the worldRadius
+        Vector3 directionNormalized = cartesianCoords.normalized;
+        spawnPoint = directionNormalized * worldRadius;
 
-        // Adding a small offset above the surface
-        spawnPoint += spawnPoint.normalized * 5;
+        // Since the coordinates are already on the surface, add a small offset above the surface
+        spawnPoint += directionNormalized * 5; // Adjust the 5 units offset as needed
     }
+
 
     void GenerateWorld()
     {
@@ -102,8 +115,8 @@ public class WorldGenerator : MonoBehaviour
             worldManagerInstance = world.GetComponent<WorldManager>();
             if (worldManagerInstance != null)
             {
-                worldManagerInstance.Initialize(recursionLevel, edgeLength, worldRadius, gravityCenter);
-                Debug.Log("Loading");
+                worldManagerInstance.Initialize(recursionLevel, worldRadius, gravityCenter);
+
                 worldManagerInstance.GenerateChunkManagerSettings();
                 worldManagerInstance.LoadWorld();
             }

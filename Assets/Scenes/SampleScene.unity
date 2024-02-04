@@ -328,8 +328,7 @@ MonoBehaviour:
   icospherePrefab: {fileID: 4095597934527393601, guid: b617dc0c63f0e7b4dae61fb0c5d724de, type: 3}
   playerPrefab: {fileID: 7253072218471772404, guid: ce3d27d1829fae74380edda4fe981009, type: 3}
   worldManagerPrefab: {fileID: 6827416334148380880, guid: 2ee67891ff236294c841f8783b7c1ebd, type: 3}
-  worldSize: 3
-  edgeLength: 12
+  worldSize: 0
   useStaticTerrain: 0
   statsDisplay: {fileID: 476288279}
 --- !u!4 &1880036002
