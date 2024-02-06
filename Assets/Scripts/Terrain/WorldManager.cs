@@ -64,7 +64,7 @@ public class WorldManager : MonoBehaviour
         this.worldCenter = worldCenter;
     }
 
-    public void GenerateChunkManagerSettings()
+    public void GenerateWorld()
     {
         if(!generated)
         {
@@ -76,8 +76,6 @@ public class WorldManager : MonoBehaviour
     }
 
     public void LoadWorld() {
-        List<float> managerEdgeLengths = new List<float>();
-        List<float> chunkEdgeLengths = new List<float>();
         int count = 0;
 
         foreach (KeyValuePair<Vector3, ChunkManagerSettings> entry in chunkManagerSettings)
@@ -92,35 +90,18 @@ public class WorldManager : MonoBehaviour
 
                 chunkManager.GenerateChunks();
                 chunkManager.LoadChunks();
-
-                managerEdgeLengths.Add(chunkManager.getAverageEdgeLength());
-                chunkEdgeLengths.Add(chunkManager.averageChunkLength);
             }
 
             count++;
         }
-
-        if (managerEdgeLengths.Count > 0) {
-            float averageManagerEdgeLength = managerEdgeLengths.Average();
-            Debug.Log($"Average Manager Edge Length: {averageManagerEdgeLength}");
-        } else {
-            Debug.Log("No manager edge lengths to average.");
-        }
-
-        if (chunkEdgeLengths.Count > 0) {
-            float averageChunkEdgeLength = chunkEdgeLengths.Average();
-            Debug.Log($"Average Chunk Edge Length: {averageChunkEdgeLength}");
-        } else {
-            Debug.Log("No chunk edge lengths to average.");
-        }
-
     }
-
 
     Vector3 DeterminePlayerChunk()
     {
         return Vector3.zero;
     }
+
+
 }
 
 public class IcosphereManagerGenerator : IcosphereBase

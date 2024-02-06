@@ -117,7 +117,7 @@ public class WorldGenerator : MonoBehaviour
             {
                 worldManagerInstance.Initialize(recursionLevel, worldRadius, gravityCenter);
 
-                worldManagerInstance.GenerateChunkManagerSettings();
+                worldManagerInstance.GenerateWorld();
                 worldManagerInstance.LoadWorld();
             }
         }

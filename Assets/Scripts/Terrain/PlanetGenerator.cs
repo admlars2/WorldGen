@@ -3,18 +3,41 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class IcosphereGenerator : MonoBehaviour
+public enum Biome
+{
+    PLAINS,
+    DESERT,
+    OCEAN,
+    
+}
+
+public struct Vertex
+{
+    Vector3 position;
+    Vector3 normal;
+    Vector3 sphereCoordinate;
+    float temperature;
+    float humidity;
+    Biome biome;
+}
+
+public class PlanetGenerator : MonoBehaviour
 {
     [Range(1, 8)]
     public int resolution = 6;
-    public float radius = 1f;
-    public float textureResolution = 1f;
+    public float radius = 1000f;
+    public float textureResolution = 100f;
 
     private Mesh mesh;
     private MeshCollider meshCollider;
     private int lastResolution;
     private float lastRadius;
     private float lastTextureResolution;
+
+    [SerializeField] private ComputeShader noiseShader;
+    private ComputeBuffer verticeBuffer;
+
+    [SerializeField] private int seed;
 
     private void Start()
     {
@@ -23,7 +46,8 @@ public class IcosphereGenerator : MonoBehaviour
         meshCollider = GetComponent<MeshCollider>();
         lastResolution = resolution;
         lastRadius = radius;
-        GenerateIcosphere();
+        
+        GeneratePlanet();
     }
 
     private void Update()
@@ -32,26 +56,29 @@ public class IcosphereGenerator : MonoBehaviour
         if (resolution != lastResolution || !Mathf.Approximately(radius, lastRadius) 
             || !Mathf.Approximately(textureResolution, lastTextureResolution))
         {
-            GenerateIcosphere();
+            GeneratePlanet();
             lastResolution = resolution;
             lastRadius = radius;
             lastTextureResolution = textureResolution; // Update last value
         }
     }
 
-    private void GenerateIcosphere()
+    private void GeneratePlanet()
     {
-        UVIcoCreate creator = new UVIcoCreate(resolution, radius, Vector3.zero, textureResolution);
+        PlanetIcoGenerator generator = new PlanetIcoGenerator(resolution, radius, Vector3.zero, textureResolution);
+        
+
+
         mesh.Clear();
-        mesh.vertices = creator.vertices.ToArray();
-        mesh.triangles = creator.triangles.ToArray();
-        mesh.uv = creator.uvs.ToArray();
+        mesh.vertices = generator.vertices.ToArray();
+        mesh.triangles = generator.triangles.ToArray();
+        mesh.uv = generator.uvs.ToArray();
         mesh.RecalculateNormals();
         meshCollider.sharedMesh = mesh;
     }
 }
 
-public class UVIcoCreate : IcosphereBase
+public class PlanetIcoGenerator : IcosphereBase
 {
     private const float TAU = Mathf.PI * 2f;
     private float PHI = (1f + Mathf.Sqrt(5f)) / 2f;
@@ -61,7 +88,7 @@ public class UVIcoCreate : IcosphereBase
 
     public List<Vector2> uvs { get; private set; }
 
-    public UVIcoCreate(int resolution, float radius, Vector3 center, float textureResolution) : base(resolution, radius, center)
+    public PlanetIcoGenerator(int resolution, float radius, Vector3 center, float textureResolution) : base(resolution, radius, center)
     {
         this.textureResolution = textureResolution;
         Generate();
@@ -120,6 +147,7 @@ public class UVIcoCreate : IcosphereBase
     {
         foreach (var vertex in vertices)
         {
+            // make compute
             Vector2 uv = new Vector2();
             uv.x = (Mathf.Atan2(vertex.x, vertex.z) / TAU + 0.5f) * textureResolution;
             uv.y = (Mathf.Asin(vertex.y / radius) / Mathf.PI + 0.5f) * textureResolution;

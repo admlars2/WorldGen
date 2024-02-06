@@ -31,8 +31,6 @@ public abstract class IcosphereBase
     public List<Vector3> vertices {get; protected set;}
     public List<int> triangles {get; protected set;}
 
-    protected List<float> edgeLengths;
-
     public IcosphereBase(int recursionLevel, float radius, Vector3 center)
     {
         vertices = new List<Vector3>();
@@ -41,15 +39,12 @@ public abstract class IcosphereBase
         this.recursionLevel = recursionLevel;
         this.radius = radius;
         this.center = center;
-
-        edgeLengths = new List<float>();
     }
 
     protected void Refine()
     {
         for(int i = 0; i < recursionLevel; i++)
         {
-            edgeLengths.Clear();
             RefineTriangles();
         }
     }
@@ -80,10 +75,6 @@ public abstract class IcosphereBase
             newTriangles.AddRange(new[] {ab, b, bc});
             newTriangles.AddRange(new[] {ca, bc, c});
             newTriangles.AddRange(new[] {ab, bc, ca});
-
-            StoreEdgeLength(vertices[a], vertices[ab]);
-            StoreEdgeLength(vertices[b], vertices[bc]);
-            StoreEdgeLength(vertices[c], vertices[ca]);
         }
 
         triangles = newTriangles; // Update the triangles list with the new set of refined triangles
@@ -106,35 +97,21 @@ public abstract class IcosphereBase
         return newIndex;
     }
 
-    protected void AssignNeighbors<T>(T settings, int v1, int v2, int v3, Dictionary<(int, int), T> edgeToChunkManager)
+    protected void AssignNeighbors<T>(T settings, int v1, int v2, int v3, Dictionary<(int, int), T> edgetoNeighbor)
     where T : INeighborAssignable
     {
         var edges = new[] { (v1, v2), (v2, v3), (v3, v1) };
 
         foreach (var edge in edges)
         {
-            if (edgeToChunkManager.TryGetValue(edge, out T neighbor))
+            if (edgetoNeighbor.TryGetValue(edge, out T neighbor))
             {
                 if(settings.AddNeighbor(neighbor.center))
                 {
                     neighbor.AddNeighbor(settings.center);
                 }
             }
-            edgeToChunkManager[edge] = settings;
+            edgetoNeighbor[edge] = settings;
         }
-    }
-
-    private void StoreEdgeLength(Vector3 vertex1, Vector3 vertex2) {
-        float length = Vector3.Distance(vertex1, vertex2);
-        edgeLengths.Add(length);
-    }
-
-    public float CalculateAverageEdgeLength() {
-        if (edgeLengths.Count == 0) return 0;
-        float totalLength = 0;
-        foreach (var length in edgeLengths) {
-            totalLength += length;
-        }
-        return totalLength / edgeLengths.Count;
     }
 }

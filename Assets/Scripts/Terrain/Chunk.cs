@@ -135,7 +135,7 @@ public class VerticeGenerator : IcosphereBase
 {
     
 
-    public VerticeGenerator(float radius, Vector3 center, Vector3[] chunkVertices) : base(3, radius, center)
+    public VerticeGenerator(float radius, Vector3 center, Vector3[] chunkVertices) : base(4, radius, center)
     {
         vertices = new List<Vector3>(chunkVertices);
         triangles = new List<int>{0, 1, 2};

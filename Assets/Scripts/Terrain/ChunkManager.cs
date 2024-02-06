@@ -50,8 +50,6 @@ public class ChunkManager : MonoBehaviour
     private bool generated = false;
     [SerializeField] private bool showGizmos = true;
 
-    public float averageChunkLength = 0;
-
     public void Initialize(float worldRadius, Vector3 worldCenter, Vector3 managerCenter, Vector3[] chunkManagerVertices)
     {
         loadedChunks = new Dictionary<Vector3, Chunk>();
@@ -78,8 +76,6 @@ public class ChunkManager : MonoBehaviour
         if (!generated) {
             ChunkSettingsGenerator chunkSettingsGenerator = new ChunkSettingsGenerator(worldRadius, worldCenter, chunkManagerVertices);
             chunksSettings = chunkSettingsGenerator.GenerateChunks();
-
-            averageChunkLength = chunkSettingsGenerator.CalculateAverageEdgeLength();
 
             generated = true;
         }
